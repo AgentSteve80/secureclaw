@@ -1,0 +1,121 @@
+name: SecureClaw Weekly Audit
+
+on:
+  schedule:
+    # Every Monday at 6AM UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      audit_type:
+        description: "Audit type to run"
+        required: false
+        default: "full"
+        type: choice
+        options:
+          - full
+          - quick
+          - supply-chain
+          - custom
+      dry_run:
+        description: "Dry run (no Convex writes)"
+        required: false
+        default: false
+        type: boolean
+      verbose:
+        description: "Verbose output"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  CONVEX_URL: ${{ secrets.CONVEX_SITE_URL }}
+  CLAW_API_KEY: ${{ secrets.CLAW_API_KEY }}
+
+jobs:
+  audit:
+    name: SecureClaw Audit (${{ inputs.audit_type || 'full' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: packages/audit-runner/package.json
+
+      - name: Install dependencies
+        working-directory: packages/audit-runner
+        run: npm ci
+
+      - name: Install OpenClaw (if available)
+        run: |
+          # Try to install openclaw — skip if unavailable (custom checks still run)
+          if command -v openclaw &>/dev/null; then
+            echo "OpenClaw already available: $(openclaw --version 2>/dev/null || echo 'unknown version')"
+          else
+            echo "::warning::OpenClaw not available in CI environment — running custom checks only"
+          fi
+
+      - name: Run SecureClaw Audit
+        working-directory: packages/audit-runner
+        env:
+          CONVEX_URL: ${{ env.CONVEX_URL }}
+          CLAW_API_KEY: ${{ env.CLAW_API_KEY }}
+        run: |
+          AUDIT_TYPE="${{ inputs.audit_type || 'full' }}"
+          DRY_RUN="${{ inputs.dry_run || 'false' }}"
+          VERBOSE="${{ inputs.verbose || 'false' }}"
+
+          ARGS="--type ${AUDIT_TYPE} --triggered-by ci"
+
+          if [ "${DRY_RUN}" = "true" ]; then
+            ARGS="${ARGS} --dry-run"
+          fi
+
+          if [ "${VERBOSE}" = "true" ]; then
+            ARGS="${ARGS} --verbose"
+          fi
+
+          echo "Running: tsx bin/audit.ts ${ARGS}"
+          npx tsx bin/audit.ts ${ARGS} | tee /tmp/audit-results.json
+
+          # Parse exit code — 2 means new CRITICAL findings (not a fatal error)
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 2 ]; then
+            echo "::warning::New CRITICAL findings detected — check Mission Control /security"
+            exit 0  # Don't fail CI on findings; alert was sent to securityEvents
+          elif [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Audit runner failed with exit code ${EXIT_CODE}"
+            exit $EXIT_CODE
+          fi
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: secureclaw-audit-${{ github.run_id }}
+          path: /tmp/audit-results.json
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Summarize results
+        if: always()
+        run: |
+          if [ -f /tmp/audit-results.json ]; then
+            echo "## SecureClaw Audit Summary" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/audit-results.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Notify on new criticals
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.warning('SecureClaw audit detected new critical findings. Check Mission Control /security tab.');

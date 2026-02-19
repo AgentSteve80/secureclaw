@@ -1,0 +1,30 @@
+{
+  "name": "@secureclaw/audit-runner",
+  "version": "1.0.0",
+  "description": "SecureClaw audit runner — orchestrates SecureClaw + custom checks, pushes results to Convex",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "audit": "./bin/audit.ts"
+  },
+  "scripts": {
+    "audit": "tsx bin/audit.ts",
+    "audit:quick": "tsx bin/audit.ts --type quick",
+    "audit:full": "tsx bin/audit.ts --type full",
+    "audit:supply-chain": "tsx bin/audit.ts --type supply-chain",
+    "audit:dry-run": "tsx bin/audit.ts --dry-run --verbose",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
