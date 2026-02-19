@@ -104,7 +104,7 @@ scan_keywords "$DATA_DIR"
 
 # Scan workspace root (not subdirectories — too noisy)
 if [ -d "$WORKSPACE" ]; then
-  for WFILE in "$WORKSPACE"/*.md "$WORKSPACE"/*.txt "$WORKSPACE"/*.log 2>/dev/null; do
+  for WFILE in "$WORKSPACE"/*.md "$WORKSPACE"/*.txt "$WORKSPACE"/*.log; do
     [ -f "$WFILE" ] || continue
     BNAME=$(basename "$WFILE")
     for PATTERN in "${CREDENTIAL_PATTERNS[@]}"; do
