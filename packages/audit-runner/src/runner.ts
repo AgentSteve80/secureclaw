@@ -158,7 +158,7 @@ export class AuditRunner {
       // Try to extract JSON from mixed output (SecureClaw may print progress lines)
       const lines = result.stdout.split("\n");
       for (let i = lines.length - 1; i >= 0; i--) {
-        const line = lines[i].trim();
+        const line = (lines[i] ?? "").trim();
         if (line.startsWith("{")) {
           try {
             const parsed = JSON.parse(line) as SecureClawOutput;

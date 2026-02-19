@@ -126,8 +126,9 @@ function truncateEvidence(evidence: string | undefined): string | undefined {
 
 function inferOWASPFromSecureClawFinding(finding: SecureClawFinding): OWASPCategory {
   // Try ID-based lookup first
-  if (SECURECLAW_OWASP_MAP[finding.id]) {
-    return SECURECLAW_OWASP_MAP[finding.id];
+  const fromId = SECURECLAW_OWASP_MAP[finding.id];
+  if (fromId) {
+    return fromId;
   }
 
   // Try explicit owaspMapping field

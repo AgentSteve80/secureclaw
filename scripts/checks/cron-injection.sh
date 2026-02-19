@@ -42,21 +42,9 @@ if [ -f "${WORKSPACE}/HEARTBEAT.md" ]; then
   FILES_TO_CHECK+=("${WORKSPACE}/HEARTBEAT.md")
 fi
 
-# Check system cron directories
-CRON_DIRS=(
-  "/etc/cron.d"
-  "/etc/cron.daily"
-  "/etc/cron.weekly"
-  "/var/spool/cron/crontabs"
-)
-
-for CDIR in "${CRON_DIRS[@]}"; do
-  if [ -d "$CDIR" ]; then
-    while IFS= read -r -d '' CFILE; do
-      FILES_TO_CHECK+=("$CFILE")
-    done < <(find "$CDIR" -type f -print0 2>/dev/null)
-  fi
-done
+# Only check user crontab, NOT system cron dirs
+# System cron files (apt-compat, logrotate, etc.) legitimately use eval/shell patterns
+# and would produce persistent false positives.
 
 # Check user crontab (if readable)
 USER_CRON=$(crontab -l 2>/dev/null || true)
