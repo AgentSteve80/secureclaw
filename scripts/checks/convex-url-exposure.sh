@@ -20,6 +20,10 @@ ALLOWED_PATTERNS=(
   "architecture-*.json"
   "research-*.md"
   "build-report-*.md"
+  "daily-report.md"
+  "README.md"
+  "test-report-*.md"
+  "task-log.md"
 )
 
 is_allowed_file() {

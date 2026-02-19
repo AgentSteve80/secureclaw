@@ -34,7 +34,7 @@ scan_for_key() {
     
     # Skip allowed files
     case "$FPATH" in
-      */.git/*|*/node_modules/*|*/.env.example|*/secureclaw/*)
+      */.git/*|*/node_modules/*|*/.env.example|*/secureclaw/*|*/package-lock.json)
         continue
         ;;
     esac
@@ -67,7 +67,7 @@ if [ -n "$ACTUAL_KEY" ] && [ "${#ACTUAL_KEY}" -gt 10 ]; then
     [ -z "$FPATH" ] && continue
     BNAME=$(basename "$FPATH")
     case "$FPATH" in
-      */.git/*|*/node_modules/*|*/secureclaw/*)
+      */.git/*|*/node_modules/*|*/secureclaw/*|*/package-lock.json)
         continue
         ;;
     esac
